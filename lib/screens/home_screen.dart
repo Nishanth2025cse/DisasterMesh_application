@@ -13,6 +13,7 @@ import 'create_sos_screen.dart';
 import 'sos_details_screen.dart';
 import 'rescue_dashboard_screen.dart';
 import 'nearby_devices_screen.dart';
+import 'map_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final UserModel user;
@@ -146,6 +147,16 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.map_outlined, color: AppColors.accentBlue),
+            tooltip: "Disaster Map",
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const MapScreen()),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.cell_tower, color: AppColors.primaryGlow),
             tooltip: "Mesh Network",

@@ -1,0 +1,1531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#102b4e">
+  <title>Rescue Operations | DisasterMesh</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+  <!-- Leaflet CSS for Interactive Real GPS Map Modal -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <style>
+    :root {
+      color-scheme: light;
+      --navy: #102b4e;
+      --navy-dark: #091a30;
+      --blue: #2869ad;
+      --blue-hover: #1e528a;
+      --ink: #20334a;
+      --muted: #7d8da0;
+      --line: #e6ebf1;
+      --page: #f3f6fa;
+      --red: #d94e55;
+      --orange: #dc9029;
+      --green: #26946a;
+      --purple: #7654bb;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--page); color: var(--ink); font: 14px 'Plus Jakarta Sans', Inter, "Segoe UI", Arial, sans-serif; overflow-x: hidden; }
+    button, select, input { font: inherit; }
+    .app { min-height: 100vh; display: grid; grid-template-columns: 218px minmax(0, 1fr); }
+    
+    /* Sidebar */
+    .sidebar { background: var(--navy); color: #fff; display: flex; flex-direction: column; padding: 22px 12px; height: 100vh; position: sticky; top: 0; overflow-y: auto; z-index: 50; }
+    .brand { display: flex; align-items: center; gap: 10px; padding: 0 10px 28px; font-size: 17px; font-weight: 750; cursor: pointer; }
+    .brand-mark { display: grid; place-items: center; width: 31px; height: 31px; border-radius: 9px; background: #fff; color: var(--blue); font-size: 19px; }
+    .nav-link { display: flex; align-items: center; gap: 12px; padding: 11px 12px; margin: 3px 0; border-radius: 8px; color: #d3dfec; font-size: 13px; text-decoration: none; cursor: pointer; transition: all 0.15s ease; border: none; background: transparent; width: 100%; text-align: left; }
+    .nav-link:hover { color: #fff; background: rgba(255, 255, 255, 0.08); }
+    .nav-link.active { color: #fff; background: #235d9c; font-weight: 650; }
+    .nav-icon { width: 18px; text-align: center; font-size: 16px; }
+    .sidebar-foot { margin-top: auto; border-top: 1px solid #ffffff20; padding: 17px 10px 0; color: #aabbd0; font-size: 11px; line-height: 1.6; }
+    
+    /* Main Layout */
+    .main { min-width: 0; }
+    .topbar { height: 62px; background: #fff; border-bottom: 1px solid var(--line); display: flex; align-items: center; padding: 0 28px; gap: 10px; position: sticky; top: 0; z-index: 40; }
+    .crumb { color: #718198; font-size: 12px; font-weight: 600; }
+    .spacer { flex: 1; }
+    .online { display: inline-flex; align-items: center; gap: 7px; color: #19845c; background: #edf9f2; border-radius: 18px; padding: 7px 12px; font-size: 11px; font-weight: 700; }
+    .online i { width: 8px; height: 8px; border-radius: 50%; background: #28a36e; animation: pulseDot 2s infinite; }
+    @keyframes pulseDot { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(1.3); } }
+    .admin { display: flex; align-items: center; gap: 8px; color: #475a70; font-size: 12px; font-weight: 600; margin-left: 10px; }
+    .avatar { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: #eaf1f8; color: var(--blue); }
+    .content { max-width: 1600px; margin: auto; padding: 24px 28px 34px; }
+    .welcome { display: flex; align-items: end; justify-content: space-between; gap: 18px; margin-bottom: 19px; }
+    h1 { font-size: 23px; margin: 0 0 5px; letter-spacing: -.4px; }
+    .subtitle { color: var(--muted); font-size: 12px; }
+    .date { color: #64758a; font-size: 12px; white-space: nowrap; }
+
+    /* Metric Summary Cards */
+    .metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 13px; margin-bottom: 17px; }
+    .metric { min-height: 92px; display: flex; align-items: center; gap: 13px; padding: 15px; border: 1px solid var(--line); border-radius: 11px; background: #fff; transition: transform 0.2s, box-shadow 0.2s; cursor: pointer; }
+    .metric:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    .metric-icon { width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; font-size: 20px; }
+    .metric.red .metric-icon { color: var(--red); background: #fff0f0; }
+    .metric.orange .metric-icon { color: var(--orange); background: #fff6e8; }
+    .metric.blue .metric-icon { color: var(--blue); background: #edf5ff; }
+    .metric.green .metric-icon { color: var(--green); background: #ecf8f2; }
+    .number { font-size: 24px; line-height: 1; font-weight: 750; }
+    .label { margin-top: 6px; color: #697b90; font-size: 11px; font-weight: 600; }
+    
+    /* Panels */
+    .upper-grid { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(320px, 1fr); gap: 15px; margin-bottom: 15px; }
+    .panel { min-width: 0; background: #fff; border: 1px solid var(--line); border-radius: 11px; overflow: hidden; }
+    .panel-head { min-height: 48px; display: flex; align-items: center; padding: 0 15px; border-bottom: 1px solid #edf0f4; }
+    .panel-title { font-weight: 700; font-size: 13px; }
+    .panel-action { margin-left: auto; border: 0; background: transparent; color: var(--blue); font-size: 11px; font-weight: 650; cursor: pointer; display: flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 6px; }
+    .panel-action:hover { background: #f0f6ff; }
+    
+    /* Map Container */
+    .map { height: 292px; position: relative; overflow: hidden; background-color: #edf3e9; background-image: linear-gradient(32deg, transparent 48%, #dce8d8 49%, #dce8d8 50%, transparent 51%), linear-gradient(145deg, transparent 47%, #e1e9dd 48%, #e1e9dd 49%, transparent 50%), linear-gradient(90deg, #e7efe1 1px, transparent 1px), linear-gradient(#e7efe1 1px, transparent 1px); background-size: 100% 100%, 100% 100%, 34px 34px, 34px 34px; }
+    .map-river { position: absolute; width: 22px; height: 125%; top: -10%; right: 22%; background: #bfdeee; border-radius: 50%; transform: rotate(28deg); }
+    .map-road { position: absolute; width: 125%; height: 8px; top: 43%; left: -10%; background: #fff; border: 1px solid #e9e7d8; transform: rotate(-9deg); }
+    .map-road.second { top: 65%; transform: rotate(24deg); height: 6px; }
+    .map-area { position: absolute; color: #82917e; font-size: 9px; letter-spacing: 1px; font-weight: 700; }
+    .zone-a { top: 24%; left: 17%; } .zone-b { top: 34%; right: 13%; } .zone-c { bottom: 18%; left: 43%; }
+    .map-empty { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; text-align: center; color: #697d6b; padding: 20px; transition: opacity 0.3s; }
+    .map-empty b { margin: 8px 0 4px; font-size: 12px; }
+    .map-empty span { font-size: 10px; color: #87958a; }
+    .map-legend { position: absolute; right: 12px; bottom: 12px; display: flex; gap: 10px; padding: 8px 10px; border-radius: 7px; background: #ffffffeb; font-size: 9px; color: #52657a; z-index: 10; border: 1px solid #e2e8f0; }
+    .legend-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 4px; }
+
+    /* Interactive Map Pins */
+    .map-pin {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      cursor: pointer;
+      z-index: 25;
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .map-pin:hover {
+      transform: translate(-50%, -50%) scale(1.25);
+      z-index: 35;
+    }
+    .pin-beacon {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 800;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.35);
+      position: relative;
+    }
+    .pin-beacon::after {
+      content: '';
+      position: absolute;
+      inset: -6px;
+      border-radius: 50%;
+      border: 2px solid currentColor;
+      animation: ripple 1.8s infinite;
+      opacity: 0.7;
+    }
+    @keyframes ripple {
+      0% { transform: scale(0.8); opacity: 0.9; }
+      100% { transform: scale(2.2); opacity: 0; }
+    }
+    .pin-high { background: var(--red); color: var(--red); }
+    .pin-medium { background: var(--orange); color: var(--orange); }
+    .pin-low { background: var(--green); color: var(--green); }
+    
+    /* Clean Hover Tooltip (Shown on hover, doesn't permanently clutter map) */
+    .pin-tooltip {
+      position: absolute;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #0f172a;
+      color: #fff;
+      padding: 6px 10px;
+      border-radius: 7px;
+      font-size: 11px;
+      line-height: 1.4;
+      white-space: nowrap;
+      pointer-events: none;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.3);
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.2s, transform 0.2s;
+      z-index: 40;
+    }
+    .map-pin:hover .pin-tooltip {
+      opacity: 1;
+      visibility: visible;
+      transform: translateX(-50%) translateY(-4px);
+    }
+
+    /* Alerts Panel */
+    .alerts-scroll {
+      height: 292px;
+      overflow-y: auto;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .alert-card {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      padding: 12px;
+      display: flex;
+      gap: 10px;
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+    .alert-card:hover { border-color: var(--blue); box-shadow: 0 4px 12px rgba(0,0,0,0.06); transform: translateY(-1px); }
+    .alert-badge {
+      width: 34px;
+      height: 34px;
+      border-radius: 9px;
+      display: grid;
+      place-items: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+    .badge-high { background: #fee2e2; color: #ef4444; }
+    .badge-medium { background: #fef3c7; color: #d97706; }
+    .badge-low { background: #dcfce7; color: #16a34a; }
+    .alert-info { flex: 1; min-width: 0; }
+    .alert-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px; }
+    .alert-name { font-weight: 700; font-size: 12px; color: var(--ink); }
+    .alert-time { font-size: 10px; color: var(--muted); }
+    .alert-msg { font-size: 11px; color: #52657a; margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .alert-footer { display: flex; align-items: center; justify-content: space-between; }
+    .prio-tag { font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 4px; }
+    .prio-tag.high { background: #fee2e2; color: #b91c1c; }
+    .prio-tag.medium { background: #fef3c7; color: #b45309; }
+    .prio-tag.low { background: #dcfce7; color: #15803d; }
+    
+    .btn-dispatch {
+      background: var(--blue);
+      color: #fff;
+      border: 0;
+      padding: 5px 11px;
+      border-radius: 6px;
+      font-size: 10px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-dispatch:hover { background: var(--blue-hover); transform: scale(1.02); }
+    .btn-dispatched { background: #10b981; color: #fff; }
+    .btn-rescued { background: #64748b; color: #fff; }
+
+    .empty-list { display: grid; place-content: center; min-height: 240px; text-align: center; padding: 20px; color: #78899c; }
+    .empty-list strong { color: #4c6077; font-size: 12px; margin-bottom: 5px; }
+    .empty-list span { font-size: 10px; }
+
+    /* Table */
+    .table-wrap { overflow-x: auto; max-height: 320px; }
+    table { width: 100%; border-collapse: collapse; min-width: 760px; }
+    th { height: 40px; text-align: left; color: #8190a1; font-size: 10px; letter-spacing: .4px; font-weight: 700; background: #fbfcfd; position: sticky; top: 0; z-index: 5; }
+    td { height: 50px; color: #43566c; font-size: 12px; border-top: 1px solid #f0f2f5; }
+    th, td { padding: 0 16px; }
+    tr:hover td { background: #f8fafc; }
+    
+    .location-link {
+      color: var(--blue);
+      text-decoration: none;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      padding: 3px 6px;
+      border-radius: 4px;
+      transition: background 0.15s;
+    }
+    .location-link:hover {
+      background: #eff6ff;
+      text-decoration: underline;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 9px;
+      border-radius: 12px;
+      font-size: 10px;
+      font-weight: 700;
+    }
+    .status-pending { background: #fff1f2; color: #e11d48; }
+    .status-dispatched { background: #ecfdf5; color: #059669; }
+    .status-rescued { background: #eff6ff; color: #2563eb; }
+
+    /* Modal Component */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.65);
+      backdrop-filter: blur(4px);
+      display: none;
+      place-items: center;
+      z-index: 1000;
+      padding: 20px;
+      animation: fadeIn 0.2s ease-out;
+    }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .modal-card {
+      background: #fff;
+      border-radius: 16px;
+      max-width: 580px;
+      width: 100%;
+      overflow: hidden;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+      animation: modalSlide 0.25s ease-out;
+    }
+    @keyframes modalSlide { from { transform: translateY(20px) scale(0.97); } to { transform: translateY(0) scale(1); } }
+    .modal-header {
+      background: var(--navy);
+      color: #fff;
+      padding: 18px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .modal-title { font-size: 16px; font-weight: 750; }
+    .modal-close {
+      background: rgba(255, 255, 255, 0.15);
+      border: 0;
+      color: #fff;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    .modal-close:hover { background: rgba(255, 255, 255, 0.25); }
+    .modal-body { padding: 22px 24px; }
+    .modal-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 13px; }
+    .modal-label { color: #64748b; font-weight: 600; }
+    .modal-val { font-weight: 700; color: #1e293b; text-align: right; }
+    .modal-msg-box {
+      background: #f8fafc;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 14px;
+      margin: 16px 0;
+      font-size: 13px;
+      color: #334155;
+      line-height: 1.5;
+    }
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    .btn-modal {
+      flex: 1;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 12px;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.15s;
+    }
+    .btn-modal-gmaps { background: #2563eb; color: #fff; text-decoration: none; }
+    .btn-modal-gmaps:hover { background: #1d4ed8; }
+    .btn-modal-dispatch { background: #10b981; color: #fff; }
+    .btn-modal-dispatch:hover { background: #059669; }
+
+    /* Tactical Map Modal (Full interactive Leaflet map) */
+    #tacticalMapModal .modal-card { max-width: 900px; width: 95%; }
+    #leafletMapContainer { height: 450px; width: 100%; border-radius: 0 0 12px 12px; }
+
+    /* Topbar Controls */
+    .top-btn {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      color: var(--blue);
+      padding: 7px 14px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.15s;
+    }
+    .top-btn:hover { background: #dbeafe; }
+    .top-btn-simulate { background: #ef4444; border: 1px solid #dc2626; color: #fff; }
+    .top-btn-simulate:hover { background: #dc2626; }
+
+    /* Toast */
+    .toast-container { position: fixed; top: 20px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
+    .toast-alert { pointer-events: auto; background: #0f172a; color: #fff; padding: 12px 16px; border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); display: flex; align-items: center; gap: 12px; border-left: 4px solid var(--red); animation: toastIn 0.3s ease-out; font-size: 12px; }
+    @keyframes toastIn { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+    /* Section Views (Tab Switcher) */
+    .section-view { display: none; }
+    .section-view.active { display: block; animation: fadeIn 0.25s ease-out; }
+
+    /* Tab Page Cards & Grids */
+    .tab-grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-top: 16px; }
+    .tab-grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-top: 16px; }
+    .info-card { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 18px; transition: transform 0.2s, box-shadow 0.2s; }
+    .info-card:hover { transform: translateY(-2px); box-shadow: 0 4px 14px rgba(0,0,0,0.06); }
+    .card-header-flex { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .card-title { font-weight: 750; font-size: 14px; color: var(--ink); }
+    .card-badge { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 6px; }
+
+    .footnote { margin-top: 13px; color: #8391a1; font-size: 10px; line-height: 1.5; }
+    @media (max-width: 900px) {
+      .app { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+      .content { padding: 20px 16px 28px; }
+      .topbar { padding: 0 16px; }
+      .upper-grid { grid-template-columns: 1fr; }
+      .map { height: 260px; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Live Notification Toast -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Incident Detail Modal (Opened when clicking Map Pin or Table Row) -->
+  <div class="modal-overlay" id="incidentModal" onclick="closeIncidentModal(event)">
+    <div class="modal-card" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title" id="modalIncidentId">🚨 Incident Details</div>
+        <button class="modal-close" onclick="closeIncidentModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-row">
+          <span class="modal-label">Victim Name:</span>
+          <span class="modal-val" id="modalVictimName">--</span>
+        </div>
+        <div class="modal-row">
+          <span class="modal-label">Emergency Category:</span>
+          <span class="modal-val" id="modalCategory">--</span>
+        </div>
+        <div class="modal-row">
+          <span class="modal-label">Priority Severity:</span>
+          <span class="modal-val" id="modalPriority">--</span>
+        </div>
+        <div class="modal-row">
+          <span class="modal-label">Reported Timestamp:</span>
+          <span class="modal-val" id="modalTime">--</span>
+        </div>
+        <div class="modal-row">
+          <span class="modal-label">GPS Coordinates:</span>
+          <span class="modal-val" id="modalCoords" style="font-family:'JetBrains Mono',monospace;">--</span>
+        </div>
+
+        <div style="font-weight:700; font-size:12px; color:#475569; margin-top:14px;">Distress Message:</div>
+        <div class="modal-msg-box" id="modalMessage">--</div>
+
+        <div class="modal-actions">
+          <a class="btn-modal btn-modal-gmaps" id="modalGmapsLink" href="#" target="_blank">
+            🗺️ Open in Google Maps
+          </a>
+          <button class="btn-modal btn-modal-dispatch" id="modalDispatchBtn" onclick="modalDispatchAction()">
+            🚨 Dispatch Squad
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Interactive Tactical Satellite Map Modal -->
+  <div class="modal-overlay" id="tacticalMapModal" onclick="closeTacticalMap(event)">
+    <div class="modal-card" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title">🛰️ Tactical GPS Map • Live Incident Beacons</div>
+        <button class="modal-close" onclick="closeTacticalMap()">✕</button>
+      </div>
+      <div id="leafletMapContainer"></div>
+      <div style="padding:12px 18px; background:#f8fafc; font-size:11px; color:#64748b; display:flex; justify-content:space-between; align-items:center;">
+        <span>Real-time GPS coordinates reported by field mobile nodes</span>
+        <button class="top-btn" onclick="centerAllPinsOnMap()">Fit All Incidents</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="app">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="brand" onclick="switchTab('dashboard')"><span class="brand-mark">✚</span> Rescue Team</div>
+      <button class="nav-link active" id="nav-dashboard" onclick="switchTab('dashboard')"><span class="nav-icon">⌂</span> Dashboard</button>
+      <button class="nav-link" id="nav-incidents" onclick="switchTab('incidents')"><span class="nav-icon">⚠</span> Incidents</button>
+      <button class="nav-link" id="nav-teams" onclick="switchTab('teams')"><span class="nav-icon">♧</span> Rescue Teams</button>
+      <button class="nav-link" id="nav-victims" onclick="switchTab('victims')"><span class="nav-icon">◎</span> Victims</button>
+      <button class="nav-link" id="nav-resources" onclick="switchTab('resources')"><span class="nav-icon">▣</span> Resources</button>
+      <button class="nav-link" id="nav-reports" onclick="switchTab('reports')"><span class="nav-icon">▤</span> Reports</button>
+      <button class="nav-link" id="nav-settings" onclick="switchTab('settings')"><span class="nav-icon">⚙</span> Settings</button>
+      <div class="sidebar-foot">DISASTERMESH<br>Emergency response console</div>
+    </aside>
+
+    <main class="main">
+      <!-- Topbar -->
+      <header class="topbar">
+        <div class="crumb" id="breadcrumbText">DisasterMesh&nbsp; / &nbsp;Rescue Operations</div>
+        <div class="spacer"></div>
+        <button class="top-btn top-btn-simulate" onclick="simulateTestSos()" title="Simulate incoming SOS distress signal">⚡ Simulate SOS</button>
+        <button class="top-btn" onclick="clearAllAlerts()" title="Reset alerts list">Reset</button>
+        <div class="online"><i></i> <span id="gatewayStatus">Cloud Gateway Active</span></div>
+        <div class="admin"><span class="avatar">♙</span><span>Rescue Admin</span></div>
+      </header>
+
+      <!-- ========================================== -->
+      <!-- TAB 1: MAIN DASHBOARD VIEW                -->
+      <!-- ========================================== -->
+      <div class="content section-view active" id="view-dashboard">
+        <section class="welcome">
+          <div>
+            <h1>Welcome, Rescue Team</h1>
+            <div class="subtitle">Live incident monitoring and emergency response coordination</div>
+          </div>
+          <div class="date" id="today"></div>
+        </section>
+
+        <!-- Metric Summary Cards -->
+        <section class="metrics" aria-label="Incident summary">
+          <div class="metric red" onclick="switchTab('incidents')">
+            <div class="metric-icon">⚠</div>
+            <div><div class="number" id="metricActive">0</div><div class="label">Active Incidents</div></div>
+          </div>
+          <div class="metric orange" onclick="filterByPriority('HIGH')">
+            <div class="metric-icon">⌖</div>
+            <div><div class="number" id="metricHigh">0</div><div class="label">High Priority</div></div>
+          </div>
+          <div class="metric blue" onclick="switchTab('teams')">
+            <div class="metric-icon">♧</div>
+            <div><div class="number" id="metricResponding">0</div><div class="label">Teams Responding</div></div>
+          </div>
+          <div class="metric green" onclick="filterTable('RESCUED')">
+            <div class="metric-icon">♡</div>
+            <div><div class="number" id="metricRescued">0</div><div class="label">People Rescued</div></div>
+          </div>
+        </section>
+
+        <!-- Upper Grid: Tactical Map & Recent Alerts -->
+        <section class="upper-grid">
+          <div class="panel">
+            <div class="panel-head">
+              <div class="panel-title">Incident Locations</div>
+              <button class="panel-action" type="button" onclick="openTacticalMap()">
+                <span>🗺️ Open Tactical Map</span>
+              </button>
+            </div>
+            <div class="map" id="mapContainer">
+              <div class="map-river"></div>
+              <div class="map-road"></div>
+              <div class="map-road second"></div>
+              <span class="map-area zone-a">NORTH ZONE</span>
+              <span class="map-area zone-b">EAST ZONE</span>
+              <span class="map-area zone-c">SOUTH ZONE</span>
+              
+              <div class="map-empty" id="mapEmptyState">
+                <div style="font-size:24px">⌖</div>
+                <b>Waiting for incident locations</b>
+                <span>GPS locations appear here when an SOS is received.</span>
+              </div>
+
+              <!-- Interactive Map pins layer -->
+              <div id="mapPinsLayer"></div>
+
+              <div class="map-legend">
+                <span><i class="legend-dot" style="background:#d94e55"></i>High</span>
+                <span><i class="legend-dot" style="background:#dc9029"></i>Medium</span>
+                <span><i class="legend-dot" style="background:#26946a"></i>Low</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head">
+              <div class="panel-title">Recent Alerts</div>
+              <button class="panel-action" type="button" onclick="switchTab('incidents')">View all</button>
+            </div>
+            <div class="alerts-scroll" id="alertsScroll">
+              <div class="empty-list" id="alertsEmptyState">
+                <strong>No alerts received yet</strong>
+                <span>Incoming SOS messages from mobile mesh will appear here live.</span>
+              </div>
+              <div id="alertsList" style="display:none; flex-direction:column; gap:8px;"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Lower Grid: Incidents Table -->
+        <section class="panel">
+          <div class="panel-head">
+            <div class="panel-title">Recent Incidents</div>
+            <div class="spacer"></div>
+            <select aria-label="Filter incidents" id="priorityFilter" onchange="filterTable(this.value)">
+              <option value="ALL">All incidents</option>
+              <option value="HIGH">High priority</option>
+              <option value="MEDIUM">Medium priority</option>
+              <option value="LOW">Low priority</option>
+            </select>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>INCIDENT ID</th>
+                  <th>VICTIM / TYPE</th>
+                  <th>PRIORITY</th>
+                  <th>STATUS</th>
+                  <th>LOCATION (GPS)</th>
+                  <th>ACTION</th>
+                </tr>
+              </thead>
+              <tbody id="incidentsTableBody">
+                <tr id="tableEmptyRow">
+                  <td class="table-empty" colspan="6">No incidents yet. The dashboard is listening for live emergency alerts.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <div class="footnote">
+          🛰️ <b>DisasterMesh Cloud Gateway:</b> Connected to decentralized mesh relay channel. When any phone in the mesh network gains network or satellite reach, offline SOS signals automatically synchronize here in real time.
+        </div>
+      </div>
+
+      <!-- ========================================== -->
+      <!-- TAB 2: INCIDENTS MANAGEMENT               -->
+      <!-- ========================================== -->
+      <div class="content section-view" id="view-incidents">
+        <section class="welcome">
+          <div>
+            <h1>Incident Operations Triage</h1>
+            <div class="subtitle">Real-time emergency queue and response coordination</div>
+          </div>
+          <button class="top-btn" onclick="openTacticalMap()">🗺️ Open Tactical Map</button>
+        </section>
+
+        <div class="panel" style="margin-bottom:16px; padding:14px 18px;">
+          <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
+            <input type="text" id="incidentSearchInput" placeholder="🔍 Search victim name, emergency category, or SOS ID..." 
+                   oninput="handleIncidentSearch(this.value)"
+                   style="flex:1; min-width:240px; padding:8px 14px; border:1px solid var(--line); border-radius:8px; outline:none;">
+            <select id="incidentStatusFilter" onchange="filterIncidentsTable()" style="padding:8px 12px; border:1px solid var(--line); border-radius:8px;">
+              <option value="ALL">All Statuses</option>
+              <option value="Pending">Pending</option>
+              <option value="Responding">Responding</option>
+              <option value="Rescued">Rescued</option>
+            </select>
+            <button class="top-btn" onclick="filterByPriority('HIGH')">High Priority Only</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>INCIDENT ID</th>
+                  <th>VICTIM NAME</th>
+                  <th>CATEGORY</th>
+                  <th>PRIORITY</th>
+                  <th>STATUS</th>
+                  <th>GPS COORDINATES</th>
+                  <th>ACTION</th>
+                </tr>
+              </thead>
+              <tbody id="fullIncidentsTableBody">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========================================== -->
+      <!-- TAB 3: RESCUE TEAMS (TACTICAL SQUADS)     -->
+      <!-- ========================================== -->
+      <div class="content section-view" id="view-teams">
+        <section class="welcome">
+          <div>
+            <h1>Tactical Rescue Units</h1>
+            <div class="subtitle">Field squads, boats, drones and personnel deployment status</div>
+          </div>
+          <button class="top-btn" onclick="showToast('SQUADS REFRESHED', 'All 4 response squad radios checked online')">📡 Ping All Units</button>
+        </section>
+
+        <div class="tab-grid-2">
+          <!-- Squad Alpha -->
+          <div class="info-card">
+            <div class="card-header-flex">
+              <div class="card-title">🚑 Squad Alpha 01 (Paramedic & Trauma)</div>
+              <span class="card-badge" style="background:#ecfdf5; color:#059669;">ACTIVE EN ROUTE</span>
+            </div>
+            <div style="font-size:12px; color:#64748b; line-height:1.7;">
+              <div><b>Unit Lead:</b> Capt. Rajesh Kumar (Medical Lead)</div>
+              <div><b>Personnel:</b> 4 Medics, 1 Driver</div>
+              <div><b>Assigned Sector:</b> Sector North (Zone A)</div>
+              <div><b>Radio Channel:</b> VHF 156.800 MHz</div>
+              <div><b>Battery / Comms:</b> 92% • Satellite Uplink OK</div>
+            </div>
+            <div style="margin-top:14px; display:flex; gap:8px;">
+              <button class="top-btn" onclick="showToast('DISPATCH RADIO', 'Calling Squad Alpha on VHF 156.800 MHz...')">📞 Radio Call</button>
+              <button class="top-btn" onclick="openTacticalMap()">📍 Track GPS</button>
+            </div>
+          </div>
+
+          <!-- Squad Bravo -->
+          <div class="info-card">
+            <div class="card-header-flex">
+              <div class="card-title">🚤 Squad Bravo 02 (Zodiac Boat Rescue)</div>
+              <span class="card-badge" style="background:#eff6ff; color:#2563eb;">READY ON STANDBY</span>
+            </div>
+            <div style="font-size:12px; color:#64748b; line-height:1.7;">
+              <div><b>Unit Lead:</b> Officer Sundar (Boat Coxswain)</div>
+              <div><b>Equipment:</b> 2 Zodiac Rigid Inflatable Boats (RIB)</div>
+              <div><b>Assigned Sector:</b> Riverfront & Lowland Basin (Zone B)</div>
+              <div><b>Radio Channel:</b> Marine Ch 16</div>
+              <div><b>Capacity:</b> 8 Evacuees per sortie</div>
+            </div>
+            <div style="margin-top:14px; display:flex; gap:8px;">
+              <button class="btn-dispatch" onclick="showToast('SQUAD DISPATCHED', 'Squad Bravo 02 deployed to East Zone Riverfront!')">🚨 Deploy Squad</button>
+              <button class="top-btn" onclick="openTacticalMap()">📍 View Sector</button>
+            </div>
+          </div>
+
+          <!-- Squad Charlie -->
+          <div class="info-card">
+            <div class="card-header-flex">
+              <div class="card-title">🏗️ Squad Charlie 03 (Structural Extraction)</div>
+              <span class="card-badge" style="background:#eff6ff; color:#2563eb;">READY ON STANDBY</span>
+            </div>
+            <div style="font-size:12px; color:#64748b; line-height:1.7;">
+              <div><b>Unit Lead:</b> Sub-Insp. Anitha (Urban Search & Rescue)</div>
+              <div><b>Equipment:</b> Hydraulic Spreaders, Cutters, Thermal Scope</div>
+              <div><b>Assigned Sector:</b> Sector South (Zone C)</div>
+              <div><b>Radio Channel:</b> UHF 462.5625 MHz</div>
+            </div>
+            <div style="margin-top:14px; display:flex; gap:8px;">
+              <button class="btn-dispatch" onclick="showToast('SQUAD DISPATCHED', 'Squad Charlie 03 dispatched with hydraulic cutters!')">🚨 Deploy Squad</button>
+              <button class="top-btn" onclick="openTacticalMap()">📍 View Sector</button>
+            </div>
+          </div>
+
+          <!-- Squad Delta -->
+          <div class="info-card">
+            <div class="card-header-flex">
+              <div class="card-title">🛸 Drone Recon Unit 04 (Aerial Mapping)</div>
+              <span class="card-badge" style="background:#fef3c7; color:#d97706;">IN FLIGHT SCAN</span>
+            </div>
+            <div style="font-size:12px; color:#64748b; line-height:1.7;">
+              <div><b>Pilot:</b> Tech Specialist Dinesh</div>
+              <div><b>Payload:</b> Dual Optical 4K + FLIR Boson Thermal Camera</div>
+              <div><b>Flight Altitude:</b> 120m AGL • Sector Grid Sweep</div>
+              <div><b>Telemetry Uplink:</b> 5.8 GHz Mesh Relay Active</div>
+            </div>
+            <div style="margin-top:14px; display:flex; gap:8px;">
+              <button class="top-btn" onclick="showToast('AERIAL STREAM', 'Connecting to 4K Thermal Recon feed...')">🎥 Live Camera</button>
+              <button class="top-btn" onclick="openTacticalMap()">📍 Flight Path</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========================================== -->
+      <!-- TAB 4: VICTIMS DIRECTORY                  -->
+      <!-- ========================================== -->
+      <div class="content section-view" id="view-victims">
+        <section class="welcome">
+          <div>
+            <h1>Victims & Patients Registry</h1>
+            <div class="subtitle">Identified individuals, contact details, medical priority and rescue status</div>
+          </div>
+          <button class="top-btn" onclick="exportVictimsCsv()">📥 Export Registry (CSV)</button>
+        </section>
+
+        <div class="panel">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>SOS ID</th>
+                  <th>VICTIM NAME</th>
+                  <th>PHONE / CONTACT</th>
+                  <th>EMERGENCY CATEGORY</th>
+                  <th>TRIAGE PRIORITY</th>
+                  <th>GPS LOCATION</th>
+                  <th>STATUS</th>
+                </tr>
+              </thead>
+              <tbody id="victimsTableBody">
+                <!-- Populated dynamically from incidents -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========================================== -->
+      <!-- TAB 5: RESOURCES & LOGISTICS              -->
+      <!-- ========================================== -->
+      <div class="content section-view" id="view-resources">
+        <section class="welcome">
+          <div>
+            <h1>Emergency Resources Depot</h1>
+            <div class="subtitle">Disaster relief equipment, survival supplies, and vehicle inventory</div>
+          </div>
+          <button class="top-btn" onclick="showToast('INVENTORY SYNC', 'Warehouse resource inventory synchronized')">🔄 Audit Supplies</button>
+        </section>
+
+        <div class="tab-grid-3">
+          <div class="info-card">
+            <div class="card-title">🚤 Inflatable Rescue Boats</div>
+            <div style="font-size:26px; font-weight:800; color:var(--blue); margin:8px 0;">6 <span style="font-size:12px; color:#64748b; font-weight:500;">/ 8 total units</span></div>
+            <div style="font-size:11px; color:#64748b;">2 units deployed with Squad Bravo. 6 ready in forward depot.</div>
+          </div>
+
+          <div class="info-card">
+            <div class="card-title">🩺 Trauma Medical Kits</div>
+            <div style="font-size:26px; font-weight:800; color:var(--green); margin:8px 0;">18 <span style="font-size:12px; color:#64748b; font-weight:500;">kits ready</span></div>
+            <div style="font-size:11px; color:#64748b;">Includes tourniquets, burn dressings, saline & IV setups.</div>
+          </div>
+
+          <div class="info-card">
+            <div class="card-title">💧 Clean Drinking Water</div>
+            <div style="font-size:26px; font-weight:800; color:var(--blue); margin:8px 0;">340 <span style="font-size:12px; color:#64748b; font-weight:500;">liters stored</span></div>
+            <div style="font-size:11px; color:#64748b;">Purified emergency rations for flood victims.</div>
+          </div>
+
+          <div class="info-card">
+            <div class="card-title">⚡ Solar Mesh Relays</div>
+            <div style="font-size:26px; font-weight:800; color:var(--orange); margin:8px 0;">12 <span style="font-size:12px; color:#64748b; font-weight:500;">nodes active</span></div>
+            <div style="font-size:11px; color:#64748b;">Portable solar battery-backed Bluetooth repeaters.</div>
+          </div>
+
+          <div class="info-card">
+            <div class="card-title">🦺 Life Jackets & Vests</div>
+            <div style="font-size:26px; font-weight:800; color:var(--ink); margin:8px 0;">45 <span style="font-size:12px; color:#64748b; font-weight:500;">vests available</span></div>
+            <div style="font-size:11px; color:#64748b;">Adult & pediatric buoyancy flotation jackets.</div>
+          </div>
+
+          <div class="info-card">
+            <div class="card-title">🛰️ Satellite Terminals</div>
+            <div style="font-size:26px; font-weight:800; color:var(--purple); margin:8px 0;">3 <span style="font-size:12px; color:#64748b; font-weight:500;">links online</span></div>
+            <div style="font-size:11px; color:#64748b;">Low-Earth orbit satellite uplink gateways active.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========================================== -->
+      <!-- TAB 6: REPORTS & MISSION ANALYTICS        -->
+      <!-- ========================================== -->
+      <div class="content section-view" id="view-reports">
+        <section class="welcome">
+          <div>
+            <h1>Mission Operations Summary</h1>
+            <div class="subtitle">Response time metrics, mesh network telemetry, and official reports</div>
+          </div>
+          <button class="top-btn" onclick="exportVictimsCsv()">📊 Export Summary Report</button>
+        </section>
+
+        <div class="tab-grid-2">
+          <div class="info-card">
+            <div class="card-title">⏱️ Response Time & Efficiency</div>
+            <div style="margin-top:14px; font-size:13px; line-height:1.8;">
+              <div style="display:flex; justify-content:space-between;"><span>Average Mesh Hop Delay:</span> <b>1.8 seconds</b></div>
+              <div style="display:flex; justify-content:space-between;"><span>Average Squad Triage Time:</span> <b>4.2 minutes</b></div>
+              <div style="display:flex; justify-content:space-between;"><span>Network Delivery Success Rate:</span> <b style="color:var(--green);">98.4%</b></div>
+              <div style="display:flex; justify-content:space-between;"><span>Active Gateway Channel:</span> <code>disastermesh_rescue_alerts_channel</code></div>
+            </div>
+          </div>
+
+          <div class="info-card">
+            <div class="card-title">📡 Multi-Hop Mesh Telemetry</div>
+            <div style="margin-top:14px; font-size:13px; line-height:1.8;">
+              <div style="display:flex; justify-content:space-between;"><span>Peak Relay Hops Recorded:</span> <b>3 Hops (Phone A➔B➔C)</b></div>
+              <div style="display:flex; justify-content:space-between;"><span>Duplicate Filter Discard:</span> <b>100% (No packet loops)</b></div>
+              <div style="display:flex; justify-content:space-between;"><span>Encryption & Integrity:</span> <b>UUID + SHA Hash Verify</b></div>
+              <div style="display:flex; justify-content:space-between;"><span>Battery Impact Per Node:</span> <b>&lt; 3.2% per hour</b></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========================================== -->
+      <!-- TAB 7: SETTINGS & GATEWAY CONFIG          -->
+      <!-- ========================================== -->
+      <div class="content section-view" id="view-settings">
+        <section class="welcome">
+          <div>
+            <h1>Command Center Settings</h1>
+            <div class="subtitle">Configure mesh gateway channels, audio chimes, and tactical preferences</div>
+          </div>
+        </section>
+
+        <div class="info-card" style="max-width:700px;">
+          <div style="font-weight:750; font-size:14px; margin-bottom:16px;">🛰️ Cloud Gateway Settings</div>
+          
+          <div style="margin-bottom:16px;">
+            <label style="display:block; font-size:12px; font-weight:700; color:#475569; margin-bottom:6px;">Pub/Sub Cloud Channel Topic:</label>
+            <input type="text" value="disastermesh_rescue_alerts_channel" readonly style="width:100%; padding:9px 12px; border:1px solid var(--line); border-radius:8px; background:#f8fafc; font-family:'JetBrains Mono',monospace; font-size:12px;">
+          </div>
+
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 0; border-top:1px solid var(--line);">
+            <div>
+              <div style="font-weight:700; font-size:13px;">Emergency Radar Audio Ping</div>
+              <div style="font-size:11px; color:#64748b;">Plays a soft tone whenever an incoming distress signal is received.</div>
+            </div>
+            <input type="checkbox" id="settingAudio" checked style="width:18px; height:18px; cursor:pointer;">
+          </div>
+
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 0; border-top:1px solid var(--line);">
+            <div>
+              <div style="font-weight:700; font-size:13px;">Auto-Centering Map Pins</div>
+              <div style="font-size:11px; color:#64748b;">Automatically centers tactical radar when new pins arrive.</div>
+            </div>
+            <input type="checkbox" checked style="width:18px; height:18px; cursor:pointer;">
+          </div>
+
+          <div style="margin-top:20px; display:flex; gap:10px;">
+            <button class="top-btn" onclick="showToast('SETTINGS SAVED', 'Preferences updated successfully')">Save Preferences</button>
+            <button class="top-btn top-btn-simulate" onclick="clearAllAlerts()">Clear All Data</button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // --- 1. CONFIG & STATE ---
+    const NTFY_TOPIC = 'disastermesh_rescue_alerts_channel';
+    const SSE_URL = `https://ntfy.sh/${NTFY_TOPIC}/sse`;
+    const POLL_URL = `https://ntfy.sh/${NTFY_TOPIC}/json?poll=1`;
+
+    let incidents = [];
+    let respondingCount = 0;
+    let rescuedCount = 0;
+    let activeModalIncident = null;
+    let leafletMap = null;
+    let leafletMarkersGroup = null;
+
+    // Display formatted date
+    document.getElementById('today').textContent = new Intl.DateTimeFormat(undefined, {
+      weekday: 'short', day: '2-digit', month: 'short', year: 'numeric'
+    }).format(new Date());
+
+    // --- 2. SIDEBAR TAB NAVIGATION SYSTEM ---
+    function switchTab(tabId) {
+      // 1. Update Sidebar Active Links
+      document.querySelectorAll('.sidebar .nav-link').forEach(btn => btn.classList.remove('active'));
+      const activeNav = document.getElementById('nav-' + tabId);
+      if (activeNav) activeNav.classList.add('active');
+
+      // 2. Hide all section views & show targeted view
+      document.querySelectorAll('.section-view').forEach(view => view.classList.remove('active'));
+      const targetView = document.getElementById('view-' + tabId);
+      if (targetView) targetView.classList.add('active');
+
+      // 3. Update Breadcrumb title
+      const tabNames = {
+        'dashboard': 'Rescue Operations',
+        'incidents': 'Incident Operations Triage',
+        'teams': 'Tactical Rescue Units',
+        'victims': 'Victims Registry',
+        'resources': 'Resources Depot',
+        'reports': 'Mission Analytics & Reports',
+        'settings': 'Command Center Settings'
+      };
+      document.getElementById('breadcrumbText').innerHTML = `DisasterMesh&nbsp; / &nbsp;${tabNames[tabId] || 'Console'}`;
+
+      // Refresh specific tab data
+      if (tabId === 'incidents' || tabId === 'victims') {
+        renderFullIncidentsView();
+        renderVictimsTableView();
+      }
+    }
+
+    // --- 3. AUDIO CHIME SYNTHESIZER ---
+    function playAlertChime() {
+      const audioEnabled = document.getElementById('settingAudio') ? document.getElementById('settingAudio').checked : true;
+      if (!audioEnabled) return;
+
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, audioCtx.currentTime); // A5
+        osc.frequency.exponentialRampToValueAtTime(440, audioCtx.currentTime + 0.35); // A4
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.35);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.35);
+      } catch (_) {}
+    }
+
+    // --- 4. TOAST NOTIFICATION ---
+    function showToast(title, body) {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = 'toast-alert';
+      toast.innerHTML = `
+        <span style="font-size:20px;">🚨</span>
+        <div>
+          <div style="font-weight:750; font-size:12px; margin-bottom:2px;">${title}</div>
+          <div style="font-size:11px; color:#cbd5e1;">${body}</div>
+        </div>
+      `;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.transition = 'opacity 0.4s, transform 0.4s';
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(-10px)';
+        setTimeout(() => toast.remove(), 400);
+      }, 5000);
+    }
+
+    // --- 5. HANDLE INCOMING SOS ---
+    function handleIncomingSos(sos, notify = true) {
+      if (!sos || !sos.sosId) return;
+
+      // Duplicate check
+      if (incidents.some(i => i.sosId === sos.sosId)) {
+        return;
+      }
+
+      // Parse coordinates accurately
+      let lat = parseFloat(sos.latitude);
+      let lng = parseFloat(sos.longitude);
+      if (isNaN(lat) || lat === 0) lat = 13.0827;
+      if (isNaN(lng) || lng === 0) lng = 80.2707;
+
+      const incident = {
+        sosId: sos.sosId || ('SOS-' + (Math.floor(Math.random() * 800) + 100)),
+        victimName: sos.victimName || 'Emergency Victim',
+        victimPhone: sos.victimPhone || '+91 98401 23456',
+        category: sos.category || 'Medical Emergency',
+        priority: (sos.priority || 'HIGH').toUpperCase(),
+        message: sos.message || 'Distress signal received over DisasterMesh.',
+        latitude: lat,
+        longitude: lng,
+        timestamp: sos.timestamp ? new Date(sos.timestamp) : new Date(),
+        status: sos.status || 'Pending'
+      };
+
+      incidents.unshift(incident);
+      updateDashboardUI();
+
+      if (notify) {
+        playAlertChime();
+        showToast(`NEW DISTRESS SIGNAL: ${incident.sosId}`, `${incident.victimName} (${incident.category}) - ${incident.priority} Priority`);
+      }
+    }
+
+    // --- 6. RENDER DASHBOARD UI ---
+    function updateDashboardUI() {
+      // 1. Update Metrics
+      const activeCount = incidents.filter(i => i.status !== 'Rescued').length;
+      const highCount = incidents.filter(i => i.priority === 'HIGH' && i.status !== 'Rescued').length;
+
+      document.getElementById('metricActive').textContent = activeCount;
+      document.getElementById('metricHigh').textContent = highCount;
+      document.getElementById('metricResponding').textContent = respondingCount;
+      document.getElementById('metricRescued').textContent = rescuedCount;
+
+      // 2. Update Map Pins
+      const mapEmpty = document.getElementById('mapEmptyState');
+      const pinsLayer = document.getElementById('mapPinsLayer');
+      pinsLayer.innerHTML = '';
+
+      if (incidents.length === 0) {
+        mapEmpty.style.display = 'grid';
+      } else {
+        mapEmpty.style.display = 'none';
+
+        incidents.forEach((inc, idx) => {
+          const pin = document.createElement('div');
+          pin.className = 'map-pin';
+          pin.title = `Click to view ${inc.victimName}'s location details`;
+          
+          // Spread pins across map zones based on index or coordinates
+          const posX = 20 + ((idx * 31 + Math.abs(inc.longitude * 100)) % 65);
+          const posY = 20 + ((idx * 27 + Math.abs(inc.latitude * 100)) % 60);
+
+          pin.style.left = `${posX}%`;
+          pin.style.top = `${posY}%`;
+
+          const prioClass = inc.priority === 'HIGH' ? 'pin-high' : (inc.priority === 'MEDIUM' ? 'pin-medium' : 'pin-low');
+
+          // Clicking a pin opens the Incident Detail Modal!
+          pin.onclick = (e) => {
+            e.stopPropagation();
+            openIncidentModal(inc.sosId);
+          };
+
+          pin.innerHTML = `
+            <div class="pin-beacon ${prioClass}">!</div>
+            <div class="pin-tooltip">
+              <b>${inc.sosId}: ${inc.victimName}</b><br>
+              ${inc.category} (${inc.priority})<br>
+              📍 ${inc.latitude.toFixed(4)}°, ${inc.longitude.toFixed(4)}°<br>
+              <span style="color:#38bdf8; font-size:10px;">Click pin to view details & Google Maps</span>
+            </div>
+          `;
+          pinsLayer.appendChild(pin);
+        });
+      }
+
+      // 3. Update Recent Alerts List
+      const alertsEmpty = document.getElementById('alertsEmptyState');
+      const alertsList = document.getElementById('alertsList');
+      alertsList.innerHTML = '';
+
+      if (incidents.length === 0) {
+        alertsEmpty.style.display = 'grid';
+        alertsList.style.display = 'none';
+      } else {
+        alertsEmpty.style.display = 'none';
+        alertsList.style.display = 'flex';
+
+        incidents.slice(0, 5).forEach(inc => {
+          const card = document.createElement('div');
+          card.className = 'alert-card';
+          card.onclick = () => openIncidentModal(inc.sosId);
+
+          const badgeClass = inc.priority === 'HIGH' ? 'badge-high' : (inc.priority === 'MEDIUM' ? 'badge-medium' : 'badge-low');
+          const prioTagClass = inc.priority === 'HIGH' ? 'high' : (inc.priority === 'MEDIUM' ? 'medium' : 'low');
+          const isDispatched = inc.status === 'Responding' || inc.status === 'Rescued';
+
+          card.innerHTML = `
+            <div class="alert-badge ${badgeClass}">🚨</div>
+            <div class="alert-info">
+              <div class="alert-header">
+                <span class="alert-name">${inc.sosId} • ${inc.victimName}</span>
+                <span class="alert-time">Just now</span>
+              </div>
+              <div class="alert-msg">${inc.message}</div>
+              <div class="alert-footer">
+                <span class="prio-tag ${prioTagClass}">${inc.priority}</span>
+                <button class="btn-dispatch ${isDispatched ? 'btn-dispatched' : ''}" onclick="event.stopPropagation(); dispatchSquad('${inc.sosId}', this)">
+                  ${inc.status === 'Rescued' ? '✓ Rescued' : (isDispatched ? '✓ Dispatched' : 'Dispatch Team')}
+                </button>
+              </div>
+            </div>
+          `;
+          alertsList.appendChild(card);
+        });
+      }
+
+      // 4. Update Incidents Table
+      renderTableRows();
+      renderFullIncidentsView();
+      renderVictimsTableView();
+    }
+
+    function renderTableRows() {
+      const tbody = document.getElementById('incidentsTableBody');
+      const filter = document.getElementById('priorityFilter').value;
+      const filtered = incidents.filter(i => {
+        if (filter === 'ALL') return true;
+        if (filter === 'RESCUED') return i.status === 'Rescued';
+        return i.priority === filter;
+      });
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td class="table-empty" colspan="6">
+              ${incidents.length === 0 ? 'No incidents yet. The dashboard is listening for live emergency alerts.' : 'No incidents matching ' + filter + ' priority.'}
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = '';
+      filtered.forEach(inc => {
+        const tr = document.createElement('tr');
+        tr.style.cursor = 'pointer';
+        tr.onclick = () => openIncidentModal(inc.sosId);
+
+        const prioTagClass = inc.priority === 'HIGH' ? 'high' : (inc.priority === 'MEDIUM' ? 'medium' : 'low');
+        const statusClass = inc.status === 'Rescued' ? 'status-rescued' : (inc.status === 'Responding' ? 'status-dispatched' : 'status-pending');
+
+        tr.innerHTML = `
+          <td style="font-weight:700; font-family:'JetBrains Mono',monospace; color:var(--blue);">${inc.sosId}</td>
+          <td>
+            <div style="font-weight:600; color:var(--ink);">${inc.victimName}</div>
+            <div style="font-size:10px; color:var(--muted);">${inc.category}</div>
+          </td>
+          <td><span class="prio-tag ${prioTagClass}">${inc.priority}</span></td>
+          <td><span class="status-pill ${statusClass}">${inc.status}</span></td>
+          <td>
+            <a href="https://www.google.com/maps?q=${inc.latitude},${inc.longitude}" target="_blank" class="location-link" onclick="event.stopPropagation()">
+              📍 ${inc.latitude.toFixed(4)}°, ${inc.longitude.toFixed(4)}°
+            </a>
+          </td>
+          <td>
+            <button class="btn-dispatch" style="font-size:10px; padding:3px 8px;" onclick="event.stopPropagation(); dispatchSquad('${inc.sosId}')">
+              ${inc.status === 'Rescued' ? 'Completed' : (inc.status === 'Responding' ? 'Mark Rescued' : 'Dispatch Squad')}
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function filterTable(val) {
+      document.getElementById('priorityFilter').value = val;
+      renderTableRows();
+    }
+
+    function filterByPriority(prio) {
+      document.getElementById('priorityFilter').value = prio;
+      renderTableRows();
+      showToast('FILTER APPLIED', `Filtering for ${prio} priority incidents`);
+    }
+
+    // --- 7. INCIDENT DETAIL MODAL ---
+    function openIncidentModal(sosId) {
+      const inc = incidents.find(i => i.sosId === sosId);
+      if (!inc) return;
+
+      activeModalIncident = inc;
+      document.getElementById('modalIncidentId').textContent = `🚨 Alert Details: ${inc.sosId}`;
+      document.getElementById('modalVictimName').textContent = inc.victimName;
+      document.getElementById('modalCategory').textContent = inc.category;
+      document.getElementById('modalPriority').textContent = `${inc.priority} PRIORITY`;
+      document.getElementById('modalTime').textContent = inc.timestamp.toLocaleTimeString() + ' (' + inc.timestamp.toLocaleDateString() + ')';
+      document.getElementById('modalCoords').textContent = `${inc.latitude.toFixed(5)}° N, ${inc.longitude.toFixed(5)}° E`;
+      document.getElementById('modalMessage').textContent = `"${inc.message}"`;
+
+      // Set Google Maps Link
+      const gmapsLink = `https://www.google.com/maps?q=${inc.latitude},${inc.longitude}`;
+      document.getElementById('modalGmapsLink').href = gmapsLink;
+
+      // Set Dispatch Button status
+      const btn = document.getElementById('modalDispatchBtn');
+      if (inc.status === 'Rescued') {
+        btn.textContent = '✓ Victim Rescued';
+        btn.style.background = '#64748b';
+      } else if (inc.status === 'Responding') {
+        btn.textContent = '✓ Mark as Rescued';
+        btn.style.background = '#2563eb';
+      } else {
+        btn.textContent = '🚨 Dispatch Response Squad';
+        btn.style.background = '#10b981';
+      }
+
+      document.getElementById('incidentModal').style.display = 'grid';
+    }
+
+    function closeIncidentModal(e) {
+      if (e && e.target && e.target.id !== 'incidentModal' && !e.target.classList.contains('modal-close')) return;
+      document.getElementById('incidentModal').style.display = 'none';
+      activeModalIncident = null;
+    }
+
+    function modalDispatchAction() {
+      if (!activeModalIncident) return;
+      dispatchSquad(activeModalIncident.sosId);
+      closeIncidentModal();
+    }
+
+    function dispatchSquad(sosId, btn = null) {
+      const inc = incidents.find(i => i.sosId === sosId);
+      if (!inc) return;
+
+      if (inc.status === 'Pending') {
+        inc.status = 'Responding';
+        respondingCount++;
+        showToast('TEAM DISPATCHED', `Squad Alpha 01 deployed to ${inc.sosId} (${inc.victimName})`);
+      } else if (inc.status === 'Responding') {
+        inc.status = 'Rescued';
+        respondingCount = Math.max(0, respondingCount - 1);
+        rescuedCount++;
+        showToast('VICTIM RESCUED', `${inc.victimName} marked safe by Response Squad`);
+      }
+      updateDashboardUI();
+    }
+
+    // --- 8. TACTICAL REAL GPS MAP MODAL (LEAFLET OPENSTREETMAP) ---
+    function openTacticalMap() {
+      document.getElementById('tacticalMapModal').style.display = 'grid';
+
+      // Initialize Leaflet map if not created yet
+      setTimeout(() => {
+        if (!leafletMap) {
+          leafletMap = L.map('leafletMapContainer').setView([13.0827, 80.2707], 13);
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors | DisasterMesh Tactical'
+          }).addTo(leafletMap);
+          leafletMarkersGroup = L.featureGroup().addTo(leafletMap);
+        } else {
+          leafletMap.invalidateSize();
+        }
+
+        centerAllPinsOnMap();
+      }, 150);
+    }
+
+    function closeTacticalMap(e) {
+      if (e && e.target && e.target.id !== 'tacticalMapModal' && !e.target.classList.contains('modal-close')) return;
+      document.getElementById('tacticalMapModal').style.display = 'none';
+    }
+
+    function centerAllPinsOnMap() {
+      if (!leafletMap || !leafletMarkersGroup) return;
+      leafletMarkersGroup.clearLayers();
+
+      if (incidents.length === 0) {
+        leafletMap.setView([13.0827, 80.2707], 12);
+        return;
+      }
+
+      incidents.forEach(inc => {
+        const marker = L.marker([inc.latitude, inc.longitude]).addTo(leafletMarkersGroup);
+        marker.bindPopup(`
+          <div style="font-size:12px; font-family:'Plus Jakarta Sans',sans-serif;">
+            <b>${inc.sosId}: ${inc.victimName}</b><br>
+            <span style="color:#d94e55; font-weight:bold;">${inc.category} (${inc.priority})</span><br>
+            ${inc.message}<br>
+            <a href="https://www.google.com/maps?q=${inc.latitude},${inc.longitude}" target="_blank" style="color:#2563eb; font-weight:bold; display:inline-block; margin-top:4px;">
+              Open in Google Maps ➔
+            </a>
+          </div>
+        `);
+      });
+
+      try {
+        leafletMap.fitBounds(leafletMarkersGroup.getBounds().pad(0.2));
+      } catch (_) {
+        leafletMap.setView([incidents[0].latitude, incidents[0].longitude], 13);
+      }
+    }
+
+    // --- 9. TAB VIEWS RENDERING ---
+    function renderFullIncidentsView() {
+      const tbody = document.getElementById('fullIncidentsTableBody');
+      if (!tbody) return;
+
+      if (incidents.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="table-empty">No incidents reported yet.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = '';
+      incidents.forEach(inc => {
+        const tr = document.createElement('tr');
+        tr.style.cursor = 'pointer';
+        tr.onclick = () => openIncidentModal(inc.sosId);
+        
+        const prioTagClass = inc.priority === 'HIGH' ? 'high' : (inc.priority === 'MEDIUM' ? 'medium' : 'low');
+        const statusClass = inc.status === 'Rescued' ? 'status-rescued' : (inc.status === 'Responding' ? 'status-dispatched' : 'status-pending');
+
+        tr.innerHTML = `
+          <td style="font-weight:700; font-family:'JetBrains Mono',monospace; color:var(--blue);">${inc.sosId}</td>
+          <td style="font-weight:600;">${inc.victimName}</td>
+          <td>${inc.category}</td>
+          <td><span class="prio-tag ${prioTagClass}">${inc.priority}</span></td>
+          <td><span class="status-pill ${statusClass}">${inc.status}</span></td>
+          <td>
+            <a href="https://www.google.com/maps?q=${inc.latitude},${inc.longitude}" target="_blank" class="location-link" onclick="event.stopPropagation()">
+              📍 ${inc.latitude.toFixed(4)}°, ${inc.longitude.toFixed(4)}°
+            </a>
+          </td>
+          <td>
+            <button class="btn-dispatch" onclick="event.stopPropagation(); dispatchSquad('${inc.sosId}')">
+              ${inc.status === 'Rescued' ? 'Done' : (inc.status === 'Responding' ? 'Mark Safe' : 'Dispatch')}
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function renderVictimsTableView() {
+      const tbody = document.getElementById('victimsTableBody');
+      if (!tbody) return;
+
+      if (incidents.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="table-empty">No registered victims found.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = '';
+      incidents.forEach(inc => {
+        const tr = document.createElement('tr');
+        tr.style.cursor = 'pointer';
+        tr.onclick = () => openIncidentModal(inc.sosId);
+
+        tr.innerHTML = `
+          <td style="font-weight:700; font-family:'JetBrains Mono',monospace; color:var(--blue);">${inc.sosId}</td>
+          <td style="font-weight:600;">${inc.victimName}</td>
+          <td style="font-family:'JetBrains Mono',monospace;">${inc.victimPhone}</td>
+          <td>${inc.category}</td>
+          <td><span class="prio-tag ${inc.priority === 'HIGH' ? 'high' : 'medium'}">${inc.priority}</span></td>
+          <td>
+            <a href="https://www.google.com/maps?q=${inc.latitude},${inc.longitude}" target="_blank" class="location-link" onclick="event.stopPropagation()">
+              📍 ${inc.latitude.toFixed(4)}°, ${inc.longitude.toFixed(4)}°
+            </a>
+          </td>
+          <td><span class="status-pill ${inc.status === 'Rescued' ? 'status-rescued' : 'status-pending'}">${inc.status}</span></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function handleIncidentSearch(query) {
+      const q = query.toLowerCase().trim();
+      const rows = document.querySelectorAll('#fullIncidentsTableBody tr');
+      rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(q) ? '' : 'none';
+      });
+    }
+
+    function filterIncidentsTable() {
+      const status = document.getElementById('incidentStatusFilter').value;
+      const rows = document.querySelectorAll('#fullIncidentsTableBody tr');
+      rows.forEach(row => {
+        if (status === 'ALL') {
+          row.style.display = '';
+        } else {
+          row.style.display = row.textContent.includes(status) ? '' : 'none';
+        }
+      });
+    }
+
+    function exportVictimsCsv() {
+      if (incidents.length === 0) {
+        showToast('EXPORT EMPTY', 'No incident records to export.');
+        return;
+      }
+      let csv = 'SOS_ID,Victim_Name,Phone,Category,Priority,Latitude,Longitude,Status\n';
+      incidents.forEach(i => {
+        csv += `"${i.sosId}","${i.victimName}","${i.victimPhone}","${i.category}","${i.priority}",${i.latitude},${i.longitude},"${i.status}"\n`;
+      });
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `DisasterMesh_Incident_Report_${new Date().toISOString().slice(0,10)}.csv`;
+      a.click();
+      showToast('REPORT DOWNLOADED', 'Incident telemetry exported as CSV');
+    }
+
+    // --- 10. SIMULATION / DEMO HELPER ---
+    let simCount = 101;
+    function simulateTestSos() {
+      const mockVictims = [
+        { name: 'Karthik Raja', cat: 'Medical', msg: 'Severe bleeding from leg injury, immediate first aid required!' },
+        { name: 'Priya Sharma', cat: 'Flood Trap', msg: 'Water rising up to 1st floor, 4 family members trapped!' },
+        { name: 'Muthu Kumar', cat: 'Structural Fire', msg: 'Smoke inhalation in apartment building, exit blocked!' },
+        { name: 'Ananya S.', cat: 'Food/Water Shortage', msg: 'Elderly patients stranded with no drinking water.' }
+      ];
+      const item = mockVictims[simCount % mockVictims.length];
+      const mockSos = {
+        sosId: `SOS-${simCount++}`,
+        victimName: item.name,
+        victimPhone: '+91 98401 ' + Math.floor(10000 + Math.random() * 90000),
+        category: item.cat,
+        priority: (simCount % 2 === 0) ? 'HIGH' : 'MEDIUM',
+        message: item.msg,
+        latitude: 13.0827 + (Math.random() - 0.5) * 0.08,
+        longitude: 80.2707 + (Math.random() - 0.5) * 0.08,
+        timestamp: new Date().toISOString(),
+        status: 'Pending'
+      };
+
+      // Uplink to ntfy cloud channel as well so all open browser tabs receive it
+      fetch(`https://ntfy.sh/${NTFY_TOPIC}`, {
+        method: 'POST',
+        headers: {
+          'Title': `SOS: ${mockSos.victimName} (${mockSos.category})`,
+          'Priority': mockSos.priority === 'HIGH' ? 'urgent' : 'default',
+          'Tags': 'rotating_light,sos,emergency',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(mockSos)
+      }).catch(() => {});
+
+      // Handle locally immediately
+      handleIncomingSos(mockSos, true);
+    }
+
+    function clearAllAlerts() {
+      incidents = [];
+      respondingCount = 0;
+      rescuedCount = 0;
+      updateDashboardUI();
+      showToast('DASHBOARD RESET', 'All alerts and incidents cleared.');
+    }
+
+    // --- 11. SERVER-SENT EVENTS (SSE) & POLLING LISTENERS ---
+    function initLiveCloudGateway() {
+      const gatewayStatus = document.getElementById('gatewayStatus');
+
+      // 1. Initial Cache Poll (fetches recent alerts sent by phone)
+      fetch(POLL_URL)
+        .then(r => r.text())
+        .then(text => {
+          const lines = text.trim().split('\n');
+          for (const line of lines) {
+            if (!line.trim()) continue;
+            try {
+              const obj = JSON.parse(line);
+              if (obj.event === 'message') {
+                const payload = typeof obj.message === 'string' ? JSON.parse(obj.message) : obj.message;
+                handleIncomingSos(payload, false);
+              }
+            } catch (_) {}
+          }
+        })
+        .catch(() => {});
+
+      // 2. Real-time EventSource Stream
+      try {
+        const evtSource = new EventSource(SSE_URL);
+
+        evtSource.onopen = function() {
+          gatewayStatus.textContent = 'Cloud Gateway Active';
+          gatewayStatus.parentElement.style.color = '#19845c';
+        };
+
+        evtSource.onmessage = function(event) {
+          try {
+            const data = JSON.parse(event.data);
+            if (data.event === 'message') {
+              const payload = typeof data.message === 'string' ? JSON.parse(data.message) : data.message;
+              handleIncomingSos(payload, true);
+            }
+          } catch (err) {
+            console.warn('Failed parsing incoming alert payload:', err);
+          }
+        };
+
+        evtSource.onerror = function() {
+          gatewayStatus.textContent = 'Reconnecting Gateway...';
+          gatewayStatus.parentElement.style.color = '#dc2626';
+          evtSource.close();
+          setTimeout(initLiveCloudGateway, 4000);
+        };
+      } catch (e) {
+        console.warn('SSE not supported or failed:', e);
+      }
+    }
+
+    // Initialize on window load
+    window.addEventListener('DOMContentLoaded', initLiveCloudGateway);
+  </script>
+</body>
+</html>

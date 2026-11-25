@@ -86,6 +86,22 @@ class _NearbyDevicesScreenState extends State<NearbyDevicesScreen> {
       appBar: AppBar(
         backgroundColor: AppColors.surface,
         title: const Text("📡 Mesh Relay Network", style: TextStyle(color: Colors.white)),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh, color: AppColors.accentBlue),
+            tooltip: "Restart BLE Scanning & Advertising",
+            onPressed: () async {
+              await _commService.requestPermissions();
+              await _commService.startAdvertising();
+              await _commService.startDiscovery();
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Restarted BLE Scanning & Advertising")),
+                );
+              }
+            },
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),

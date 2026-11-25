@@ -53,27 +53,35 @@ class SpeechService {
     required Function(String text) onResult,
     required Function(String status) onStatusChange,
   }) async {
-    if (!_isAvailable) {
+    try {
+      // Force clean stop of any existing session before starting
+      await stopListening();
+      
       bool initSuccess = await initialize();
       if (!initSuccess) {
         onStatusChange("Microphone permission or Speech service unavailable.");
         return;
       }
-    }
 
-    _isListening = true;
-    onStatusChange("Listening... Speak your emergency details.");
+      _isListening = true;
+      onStatusChange("Listening... Speak your emergency details clearly.");
 
-    try {
-      final systemLocale = await _speech.systemLocale();
-      final localeId = systemLocale?.localeId ?? 'en_US';
+      String localeId = 'en_US';
+      try {
+        final systemLocale = await _speech.systemLocale();
+        if (systemLocale != null) {
+          localeId = systemLocale.localeId;
+        }
+      } catch (_) {}
 
       await _speech.listen(
         onResult: (val) {
-          onResult(val.recognizedWords);
+          if (val.recognizedWords.isNotEmpty) {
+            onResult(val.recognizedWords);
+          }
         },
-        listenFor: const Duration(seconds: 30),
-        pauseFor: const Duration(seconds: 5),
+        listenFor: const Duration(seconds: 45),
+        pauseFor: const Duration(seconds: 6),
         localeId: localeId,
         listenOptions: stt.SpeechListenOptions(
           partialResults: true,
@@ -83,15 +91,18 @@ class SpeechService {
       );
     } catch (e) {
       if (kDebugMode) print('Speech listen exception: $e');
-      onStatusChange("Voice recording error: $e");
+      onStatusChange("Voice recording paused. Tap Mic to record again.");
       _isListening = false;
+      _isAvailable = false;
     }
   }
 
   Future<void> stopListening() async {
-    if (_isListening) {
-      await _speech.stop();
-      _isListening = false;
-    }
+    try {
+      if (_speech.isListening) {
+        await _speech.stop();
+      }
+    } catch (_) {}
+    _isListening = false;
   }
 }

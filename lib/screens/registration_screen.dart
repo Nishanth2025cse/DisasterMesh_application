@@ -83,7 +83,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
               _buildTextField(
                 controller: _nameController,
                 label: "Full Name *",
-                hint: "e.g. Praveena",
+                hint: "e.g. Alex Kumar",
                 icon: Icons.person_outline,
                 validator: (val) => val == null || val.trim().isEmpty ? "Full Name is required" : null,
               ),

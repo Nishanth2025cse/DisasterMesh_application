@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'utils/constants.dart';
 import 'screens/splash_screen.dart';
 import 'screens/landing_page.dart';
+import 'screens/rescue_dashboard_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,7 +37,11 @@ class DisasterMeshApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      home: kIsWeb ? const LandingPage() : const SplashScreen(),
+      home: kIsWeb
+          ? (Uri.base.path == '/rescue'
+              ? const RescueDashboardScreen()
+              : const LandingPage())
+          : const SplashScreen(),
     );
   }
 }

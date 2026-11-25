@@ -5,6 +5,7 @@ import '../services/storage_service.dart';
 import '../services/classification_service.dart';
 import '../services/priority_service.dart';
 import '../utils/helpers.dart';
+import '../services/cloud_gateway_service.dart';
 
 class SosService {
   static final SosService _instance = SosService._internal();
@@ -59,6 +60,7 @@ class SosService {
 
     await _storage.saveSos(newSos);
     await refreshSosList();
+    unawaited(CloudGatewayService.uplinkSosToCloud(newSos));
     return newSos;
   }
 
@@ -98,6 +100,7 @@ class SosService {
 
     await _storage.saveSos(updatedSos);
     await refreshSosList();
+    unawaited(CloudGatewayService.uplinkSosToCloud(updatedSos));
     return updatedSos;
   }
 

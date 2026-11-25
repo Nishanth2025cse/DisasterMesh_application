@@ -26,6 +26,10 @@
     ],
     "rewrites": [
       {
+        "source": "/rescue",
+        "destination": "/rescue.html"
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }

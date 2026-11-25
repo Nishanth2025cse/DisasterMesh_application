@@ -3,11 +3,14 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:nearby_connections/nearby_connections.dart';
 import 'package:uuid/uuid.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:geolocator/geolocator.dart';
 import '../models/sos_model.dart';
 import '../models/message_model.dart';
 import '../models/device_model.dart';
 import '../services/storage_service.dart';
 import '../services/sos_service.dart';
+import '../services/cloud_gateway_service.dart';
 import '../utils/constants.dart';
 
 class CommunicationService {
@@ -48,10 +51,47 @@ class CommunicationService {
     _logStreamController.add("[${DateTime.now().toString().split('.').first.split(' ').last}] $message");
   }
 
+  /// Request essential Android Location & BLE Permissions
+  Future<bool> requestPermissions() async {
+    try {
+      _log("Requesting Location & BLE permissions...");
+      
+      // Request permissions
+      Map<Permission, PermissionStatus> statuses = await [
+        Permission.location,
+        Permission.locationWhenInUse,
+        Permission.bluetoothScan,
+        Permission.bluetoothAdvertise,
+        Permission.bluetoothConnect,
+        Permission.nearbyWifiDevices,
+      ].request();
+
+      _log("Permission status: ${statuses.values.map((s) => s.toString()).join(', ')}");
+
+      // Check if location toggle switch is enabled on phone settings
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        _log("⚠️ GPS Location switch is OFF in phone settings! Please turn ON Location/GPS toggle.");
+      }
+      return true;
+    } catch (e) {
+      _log("Permission request error: $e");
+      return false;
+    }
+  }
+
   /// Initialize Mesh Network Communication
   Future<void> startMeshNetwork(String userName) async {
     _currentDeviceId = "DEV-${userName.replaceAll(' ', '')}-${_uuid.v4().substring(0, 4)}";
     _log("Initializing DisasterMesh node: $_currentDeviceId");
+
+    await requestPermissions();
+
+    // Stop any previous stale sessions before starting
+    try {
+      await Nearby().stopAdvertising();
+      await Nearby().stopDiscovery();
+    } catch (_) {}
 
     // Start Nearby Advertising & Discovery
     await startAdvertising();
@@ -61,12 +101,13 @@ class CommunicationService {
   /// Start Advertising endpoint to nearby devices
   Future<void> startAdvertising() async {
     try {
+      await Nearby().stopAdvertising();
       _isAdvertising = await Nearby().startAdvertising(
         _currentDeviceId,
         _strategy,
         onConnectionInitiated: _onConnectionInitiated,
         onConnectionResult: (endpointId, status) {
-          _log("Connection result with $endpointId: $status");
+          _log("Advertising Connection result with $endpointId: $status");
           if (status == Status.CONNECTED) {
             _updateDeviceConnection(endpointId, true);
             _processPriorityQueue(); // Flush pending relay messages
@@ -78,37 +119,44 @@ class CommunicationService {
         },
         serviceId: AppConstants.serviceId,
       );
-      _log("Nearby Advertising started.");
+      _log("Nearby Advertising started successfully.");
     } catch (e) {
-      _log("Advertising error (Simulator/Permission fallback mode): ${e.toString()}");
+      _log("Advertising status/error: ${e.toString()}");
     }
   }
 
   /// Start Discovering nearby DisasterMesh endpoints
   Future<void> startDiscovery() async {
     try {
+      await Nearby().stopDiscovery();
       _isDiscovering = await Nearby().startDiscovery(
         _currentDeviceId,
         _strategy,
-        onEndpointFound: (endpointId, endpointName, serviceId) {
-          _log("Found endpoint: $endpointName ($endpointId)");
+        onEndpointFound: (endpointId, endpointName, serviceId) async {
+          _log("Found nearby endpoint: $endpointName ($endpointId)");
           _addDiscoveredDevice(endpointId, endpointName);
+          
           // Request connection automatically for mesh node peering
-          Nearby().requestConnection(
-            _currentDeviceId,
-            endpointId,
-            onConnectionInitiated: _onConnectionInitiated,
-            onConnectionResult: (id, status) {
-              _log("Connection result with $id: $status");
-              if (status == Status.CONNECTED) {
-                _updateDeviceConnection(id, true);
-                _processPriorityQueue();
-              }
-            },
-            onDisconnected: (id) {
-              _updateDeviceConnection(id, false);
-            },
-          );
+          try {
+            await Nearby().requestConnection(
+              _currentDeviceId,
+              endpointId,
+              onConnectionInitiated: _onConnectionInitiated,
+              onConnectionResult: (id, status) {
+                _log("Discovery Connection result with $id: $status");
+                if (status == Status.CONNECTED) {
+                  _updateDeviceConnection(id, true);
+                  _processPriorityQueue();
+                }
+              },
+              onDisconnected: (id) {
+                _log("Discovery endpoint disconnected: $id");
+                _updateDeviceConnection(id, false);
+              },
+            );
+          } catch (err) {
+            _log("Request connection error with $endpointName: $err");
+          }
         },
         onEndpointLost: (endpointId) {
           _log("Endpoint lost: $endpointId");
@@ -118,9 +166,9 @@ class CommunicationService {
         },
         serviceId: AppConstants.serviceId,
       );
-      _log("Nearby Discovery started.");
+      _log("Nearby Discovery started successfully.");
     } catch (e) {
-      _log("Discovery error (Simulator/Permission fallback mode): ${e.toString()}");
+      _log("Discovery status/error: ${e.toString()}");
     }
   }
 
@@ -186,6 +234,7 @@ class CommunicationService {
         await _sosService.refreshSosList();
         _incomingSosStreamController.add(incomingSos);
         _log("🚨 NEW SOS STORED LOCALLY: ${incomingSos.sosId} from ${incomingSos.victimName}");
+        unawaited(CloudGatewayService.uplinkSosToCloud(incomingSos));
       }
 
       // 3. TTL / HOP LIMIT CHECK

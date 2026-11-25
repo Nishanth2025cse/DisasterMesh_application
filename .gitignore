@@ -1,0 +1,17 @@
+.build/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.firebase/
+.idea/
+.vscode/
+android/.gradle/
+android/app/build/
+android/local.properties
+ios/Flutter/App.framework
+ios/Flutter/Flutter.framework
+build/
+build/web/
+!build/app/outputs/flutter-apk/app-release.apk
+flutter/
+*.iml

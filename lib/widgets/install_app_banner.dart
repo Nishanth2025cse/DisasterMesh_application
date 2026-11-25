@@ -66,9 +66,9 @@ class InstallAppBanner extends StatelessWidget {
                   Expanded(
                     child: ElevatedButton.icon(
                       onPressed: () async {
-                        final Uri url = Uri.parse("DisasterMesh.bin");
+                        final Uri url = Uri.parse("http://10.132.116.236:8000/DisasterMesh-App.apk");
                         try {
-                          await launchUrl(url);
+                          await launchUrl(url, mode: LaunchMode.externalApplication);
                         } catch (_) {}
                       },
                       style: ElevatedButton.styleFrom(
